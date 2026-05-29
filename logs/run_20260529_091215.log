@@ -1,0 +1,12 @@
+2026-05-29 09:12:15 | 엑셀 거래처/고객 매칭 프로그램을 시작합니다.
+2026-05-29 09:12:15 | 실행 시작 시간: 2026-05-29 09:12:15
+2026-05-29 09:12:15 | 입력 A 파일: C:\dev\file matching\excel_matcher\input\A.xlsx
+2026-05-29 09:12:15 | 입력 B 파일: C:\dev\file matching\excel_matcher\input\B.xlsx
+2026-05-29 09:12:15 | 출력 C 파일: C:\dev\file matching\excel_matcher\output\C.xlsx
+2026-05-29 09:12:15 | 예상하지 못한 오류가 발생했습니다: name 'validate_input_files' is not defined
+2026-05-29 09:12:15 | Traceback (most recent call last):
+  File "main.py", line 136, in run
+    validate_input_files(paths)
+    ^^^^^^^^^^^^^^^^^^^^
+NameError: name 'validate_input_files' is not defined
+
