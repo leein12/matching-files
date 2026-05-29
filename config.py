@@ -6,13 +6,19 @@ import sys
 
 
 REQUIRED_COLUMNS = [
+    "거래처코드",
     "거래처명",
     "시도명",
     "시군구명",
     "도로명주소",
     "전화번호",
+    "고객코드",
     "고객명",
+    "진료과목명",
 ]
+
+# C 파일 출력용 — 유사도 계산에는 사용하지 않고 A/B 원본값을 그대로 전달
+PASSTHROUGH_COLUMNS = REQUIRED_COLUMNS.copy()
 
 
 DEFAULT_SIDO_ALIAS = {

@@ -5,6 +5,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import pandas as pd
 
+from config import PASSTHROUGH_COLUMNS
 from normalizers import (
     normalize_address,
     normalize_company_name,
@@ -162,26 +163,12 @@ def _pick_near_candidates(
     return near
 
 
-def _format_b_columns(row: pd.Series, prefix: str) -> dict:
-    return {
-        f"{prefix}거래처명": row.get("거래처명", ""),
-        f"{prefix}시도명": row.get("시도명", ""),
-        f"{prefix}시군구명": row.get("시군구명", ""),
-        f"{prefix}도로명주소": row.get("도로명주소", ""),
-        f"{prefix}전화번호": row.get("전화번호", ""),
-        f"{prefix}고객명": row.get("고객명", ""),
-    }
+def _format_row_columns(row: pd.Series, prefix: str) -> dict:
+    return {f"{prefix}{col}": row.get(col, "") for col in PASSTHROUGH_COLUMNS}
 
 
-def _empty_b_columns(prefix: str) -> dict:
-    return {
-        f"{prefix}거래처명": "",
-        f"{prefix}시도명": "",
-        f"{prefix}시군구명": "",
-        f"{prefix}도로명주소": "",
-        f"{prefix}전화번호": "",
-        f"{prefix}고객명": "",
-    }
+def _empty_row_columns(prefix: str) -> dict:
+    return {f"{prefix}{col}": "" for col in PASSTHROUGH_COLUMNS}
 
 
 def _build_output_row(
@@ -190,17 +177,10 @@ def _build_output_row(
     near_candidates: Sequence[CandidateResult],
     df_b: pd.DataFrame,
 ) -> dict:
-    output = {
-        "(A)거래처명": a_row.get("거래처명", ""),
-        "(A)시도명": a_row.get("시도명", ""),
-        "(A)시군구명": a_row.get("시군구명", ""),
-        "(A)도로명주소": a_row.get("도로명주소", ""),
-        "(A)전화번호": a_row.get("전화번호", ""),
-        "(A)고객명": a_row.get("고객명", ""),
-    }
+    output = _format_row_columns(a_row, "(A)")
 
     if representative is None:
-        output.update(_empty_b_columns("(B)"))
+        output.update(_empty_row_columns("(B)"))
         output.update(
             {
                 "거래처 기본 유사도점수": 0,
@@ -212,7 +192,7 @@ def _build_output_row(
         )
     else:
         b_row = df_b.loc[representative.b_index]
-        output.update(_format_b_columns(b_row, "(B)"))
+        output.update(_format_row_columns(b_row, "(B)"))
         output.update(
             {
                 "거래처 기본 유사도점수": representative.base_score,
@@ -228,10 +208,10 @@ def _build_output_row(
         if idx - 1 < len(near_candidates):
             near = near_candidates[idx - 1]
             near_row = df_b.loc[near.b_index]
-            output.update(_format_b_columns(near_row, f"{prefix}(B)"))
+            output.update(_format_row_columns(near_row, f"{prefix}(B)"))
             output[f"{prefix}거래처 최종 유사도점수"] = near.final_score
         else:
-            output.update(_empty_b_columns(f"{prefix}(B)"))
+            output.update(_empty_row_columns(f"{prefix}(B)"))
             output[f"{prefix}거래처 최종 유사도점수"] = ""
 
     return output
@@ -258,45 +238,22 @@ def match_dataframes(
         if progress_callback:
             progress_callback(row_number, total)
 
-    columns = [
-        "(A)거래처명",
-        "(A)시도명",
-        "(A)시군구명",
-        "(A)도로명주소",
-        "(A)전화번호",
-        "(A)고객명",
-        "(B)거래처명",
-        "(B)시도명",
-        "(B)시군구명",
-        "(B)도로명주소",
-        "(B)전화번호",
-        "(B)고객명",
-        "거래처 기본 유사도점수",
-        "고객명 가점",
-        "거래처 최종 유사도점수",
-        "거래처 일치여부",
-        "고객명 일치여부",
-        "근접후보1_(B)거래처명",
-        "근접후보1_(B)시도명",
-        "근접후보1_(B)시군구명",
-        "근접후보1_(B)도로명주소",
-        "근접후보1_(B)전화번호",
-        "근접후보1_(B)고객명",
-        "근접후보1_거래처 최종 유사도점수",
-        "근접후보2_(B)거래처명",
-        "근접후보2_(B)시도명",
-        "근접후보2_(B)시군구명",
-        "근접후보2_(B)도로명주소",
-        "근접후보2_(B)전화번호",
-        "근접후보2_(B)고객명",
-        "근접후보2_거래처 최종 유사도점수",
-        "근접후보3_(B)거래처명",
-        "근접후보3_(B)시도명",
-        "근접후보3_(B)시군구명",
-        "근접후보3_(B)도로명주소",
-        "근접후보3_(B)전화번호",
-        "근접후보3_(B)고객명",
-        "근접후보3_거래처 최종 유사도점수",
-    ]
+    def prefixed_columns(label: str) -> List[str]:
+        return [f"{label}{col}" for col in PASSTHROUGH_COLUMNS]
+
+    columns = (
+        prefixed_columns("(A)")
+        + prefixed_columns("(B)")
+        + [
+            "거래처 기본 유사도점수",
+            "고객명 가점",
+            "거래처 최종 유사도점수",
+            "거래처 일치여부",
+            "고객명 일치여부",
+        ]
+    )
+    for idx in range(1, 4):
+        columns.extend(prefixed_columns(f"근접후보{idx}_(B)"))
+        columns.append(f"근접후보{idx}_거래처 최종 유사도점수")
 
     return pd.DataFrame(output_rows, columns=columns)
